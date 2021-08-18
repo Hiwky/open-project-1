@@ -8,6 +8,7 @@ public class CameraManager : MonoBehaviour
 	public InputReader inputReader;
 	public Camera mainCamera;
 	public CinemachineFreeLook freeLookVCam;
+	public CinemachineImpulseSource impulseSource;
 	private bool _isRMBPressed;
 
 	[SerializeField, Range(.5f, 3f)]
@@ -17,6 +18,8 @@ public class CameraManager : MonoBehaviour
 	[Header("Listening on channels")]
 	[Tooltip("The CameraManager listens to this event, fired by objects in any scene, to adapt camera position")]
 	[SerializeField] private TransformEventChannelSO _frameObjectChannel = default;
+	[Tooltip("The CameraManager listens to this event, fired by protagonist GettingHit state, to shake camera")]
+	[SerializeField] private VoidEventChannelSO _camShakeEvent = default;
 
 
 	private bool _cameraMovementLock = false;
@@ -34,8 +37,8 @@ public class CameraManager : MonoBehaviour
 		inputReader.enableMouseControlCameraEvent += OnEnableMouseControlCamera;
 		inputReader.disableMouseControlCameraEvent += OnDisableMouseControlCamera;
 
-		if (_frameObjectChannel != null)
-			_frameObjectChannel.OnEventRaised += OnFrameObjectEvent;
+		_frameObjectChannel.OnEventRaised += OnFrameObjectEvent;
+		_camShakeEvent.OnEventRaised += impulseSource.GenerateImpulse;
 
 		_cameraTransformAnchor.Transform = mainCamera.transform;
 	}
@@ -46,8 +49,8 @@ public class CameraManager : MonoBehaviour
 		inputReader.enableMouseControlCameraEvent -= OnEnableMouseControlCamera;
 		inputReader.disableMouseControlCameraEvent -= OnDisableMouseControlCamera;
 
-		if (_frameObjectChannel != null)
-			_frameObjectChannel.OnEventRaised -= OnFrameObjectEvent;
+		_frameObjectChannel.OnEventRaised -= OnFrameObjectEvent;
+		_camShakeEvent.OnEventRaised -= impulseSource.GenerateImpulse;
 	}
 
 	private void OnEnableMouseControlCamera()
@@ -88,8 +91,12 @@ public class CameraManager : MonoBehaviour
 		if (isDeviceMouse && !_isRMBPressed)
 			return;
 
-		freeLookVCam.m_XAxis.m_InputAxisValue = cameraMovement.x * Time.deltaTime * _speedMultiplier;
-		freeLookVCam.m_YAxis.m_InputAxisValue = cameraMovement.y * Time.deltaTime * _speedMultiplier;
+		//Using a "fixed delta time" if the device is mouse,
+		//since for the mouse we don't have to account for frame duration
+		float deviceMultiplier = isDeviceMouse ? 0.02f : Time.deltaTime;
+
+		freeLookVCam.m_XAxis.m_InputAxisValue = cameraMovement.x * deviceMultiplier * _speedMultiplier;
+		freeLookVCam.m_YAxis.m_InputAxisValue = cameraMovement.y * deviceMultiplier * _speedMultiplier;
 	}
 
 	private void OnFrameObjectEvent(Transform value)

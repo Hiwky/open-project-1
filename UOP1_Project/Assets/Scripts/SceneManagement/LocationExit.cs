@@ -6,11 +6,9 @@
 
 public class LocationExit : MonoBehaviour
 {
-	[Header("Loading settings")]
 	[SerializeField] private GameSceneSO _locationToLoad = default;
-	[SerializeField] private bool _showLoadScreen = default;
-	[SerializeField] private PathAnchor _pathTaken = default;
-	[SerializeField] private PathSO _exitPath = default;
+	[SerializeField] private PathSO _leadsToPath = default;
+	[SerializeField] private PathStorageSO _pathStorage = default; //This is where the last path taken will be stored
 
 	[Header("Broadcasting on")]
 	[SerializeField] private LoadEventChannelSO _locationExitLoadChannel = default;
@@ -19,14 +17,14 @@ public class LocationExit : MonoBehaviour
 	{
 		if (other.CompareTag("Player"))
 		{
-			UpdatePathTaken();
-			_locationExitLoadChannel.RaiseEvent(_locationToLoad, _showLoadScreen);
+			_pathStorage.lastPathTaken = _leadsToPath;
+			LoadScene();
 		}
 	}
 
-	private void UpdatePathTaken()
+	//Used to load a location from a custscene
+	public void LoadScene()
 	{
-		if (_pathTaken != null)
-			_pathTaken.Path = _exitPath;
+		_locationExitLoadChannel.RaiseEvent(_locationToLoad, false, true);
 	}
 }

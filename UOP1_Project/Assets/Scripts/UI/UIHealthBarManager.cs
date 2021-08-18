@@ -2,38 +2,29 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-
+using TMPro;
 public class UIHealthBarManager : MonoBehaviour
 {
-	Transform target;
-	int maxHealth=0;
-	int currentHealth=0;
-	[SerializeField] private Slider _healthBar = default;
+	int _maxHealth;
+	float _currentHealth;
+	[SerializeField] private UIHeartDisplay[] _heartImages = default;
+	[SerializeField] private TextMeshProUGUI healthText = default;
 
 	[Header("Listening to")]
 	[SerializeField] private IntEventChannelSO _setHealthBar = default;
 	[SerializeField] private IntEventChannelSO _inflictDamage = default;
 	[SerializeField] private IntEventChannelSO _restoreHealth = default;
 
+
 	private void OnEnable()
 	{
 
-		if((GetComponent<Canvas>()!=null)&&(Camera.main!=null))
-		{
-			GetComponent<Canvas>().worldCamera = Camera.main;
-			target = Camera.main.transform; 
+		_setHealthBar.OnEventRaised += SetHealthBar;
 
-		}
-	}
-	private void Start()
-	{
-		
-			_setHealthBar.OnEventRaised += SetHealthBar;
-		
-			_inflictDamage.OnEventRaised += InflictDamage;
-		
-			_restoreHealth.OnEventRaised += RestoreHealth;
-		
+		_inflictDamage.OnEventRaised += InflictDamage;
+
+		_restoreHealth.OnEventRaised += RestoreHealth;
+
 	}
 	private void OnDestroy()
 	{
@@ -47,36 +38,50 @@ public class UIHealthBarManager : MonoBehaviour
 	}
 	public void SetHealthBar(int _maxHealth)
 	{
-		maxHealth = _maxHealth;
-		currentHealth = _maxHealth;
-		setSlider(); 
+		this._maxHealth = _maxHealth;
+		_currentHealth = _maxHealth;
+		SetHeartImages();
 
 	}
 	public void InflictDamage(int _damage)
 	{
-		currentHealth -= _damage;
-		setSlider();
+		_currentHealth -= _damage;
+		SetHeartImages();
 	}
 	public void RestoreHealth(int _healthToAdd)
 	{
-		currentHealth += _healthToAdd;
-		setSlider();
+		_currentHealth += _healthToAdd;
+		SetHeartImages();
 	}
 
-	void setSlider()
+	void SetHeartImages()
 	{
-		//clamp current value 
-		currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-		//find new slider value
-		float sliderValue = 0;
-		sliderValue = currentHealth / maxHealth;
-		_healthBar.value = sliderValue; 
+
+		int heartValue = _maxHealth / _heartImages.Length;
+		int filledHeartCount = Mathf.FloorToInt(_currentHealth / heartValue);
+
+		for (int i = 0; i < _heartImages.Length; i++)
+		{
+			float heartPercent = 0;
+
+			if (i < filledHeartCount)
+			{
+				heartPercent = 1;
+			}
+			else if (i == filledHeartCount)
+			{
+				heartPercent = ((float)_currentHealth - (float)filledHeartCount * (float)heartValue) / (float)heartValue;
+			}
+			else
+			{
+				heartPercent = 0;
+			}
+			_heartImages[i].SetImage(heartPercent);
+
+		}
 
 	}
 
-	private void Update()
-	{
-		if (target != null)
-			transform.LookAt(target, Vector3.down);
-	}
+
+
 }
